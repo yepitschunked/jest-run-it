@@ -7,6 +7,9 @@ import {
 } from './constants';
 import { getConfig, ConfigOption } from './config';
 import { quoteTestName, getTerminal, quoteArgument } from './extension';
+import { JestFileResults, JestTotalResults, Runner } from 'jest-editor-support';
+import { createProjectWorkspace } from 'jest-editor-support/build/project_workspace';
+import { TestsExplorerDataProvider } from './testsExplorerDataProvider';
 
 const convertEnvVariablesToObj = (env: string) => {
   const obj = (env.split(' ') as string[])
@@ -20,6 +23,7 @@ const convertEnvVariablesToObj = (env: string) => {
   return obj;
 };
 
+const outputChannel = vscode.window.createOutputChannel('jest');
 export const runTest = (
   filePath: string,
   testName?: string,
@@ -28,32 +32,37 @@ export const runTest = (
   const jestPath = getConfig(ConfigOption.JestPath) || DEFAULT_JEST_PATH;
   const jestConfigPath = getConfig(ConfigOption.JestConfigPath);
   const runOptions = getConfig(ConfigOption.JestCLIOptions) as string[];
-  const environmentVarialbes = getConfig(
+  const environmentVariables = getConfig(
     ConfigOption.EnvironmentVariables
   ) as string;
 
-  let command = `${environmentVarialbes} ${jestPath} ${quoteTestName(filePath)}`;
+  console.log('testName', testName, filePath);
 
-  if (testName) {
-    command += ` -t ${quoteTestName(testName)}`;
-  }
-  if (jestConfigPath) {
-    command += ` -c ${jestConfigPath}`;
-  }
-  if (updateSnapshots) {
-    command += ' -u';
-  }
-  if (runOptions) {
-    runOptions.forEach((option) => {
-      command += ` ${option}`;
-    });
-  }
-  let terminal = getTerminal(TERMINAL_NAME);
-  if (!terminal) {
-    terminal = vscode.window.createTerminal(TERMINAL_NAME);
-  }
-  terminal.show();
-  terminal.sendText(command.trim());
+  const runner = new Runner(createProjectWorkspace({
+    jestCommandLine: `${environmentVariables} ${jestPath} ${runOptions}`,
+    pathToConfig: jestConfigPath as string,
+    rootPath: vscode.workspace.rootPath,
+    localJestMajorVersion: 27,
+  }), {
+    testNamePattern: testName ? quoteTestName(testName) : undefined,
+    testFileNamePattern: quoteTestName(filePath),
+    args: { args: [...runOptions, updateSnapshots ? '-u' : '', '--ci=false'] },
+  });
+
+  let testResults: JestTotalResults;
+
+  runner.on('executableJSON', (data) => {
+    testResults = data;
+    outputChannel.append(JSON.stringify(data));
+  });
+
+  runner.on('executableOutput', (data) => outputChannel.append(String(data)));
+  runner.on('executableStdErr', (data) => outputChannel.append(String(data)));
+  runner.on('processExit', () => {
+    TestsExplorerDataProvider.receiveTestData(testResults.testResults)
+  });
+
+  runner.start(false, false);
 };
 export const debugTest = (filePath: string, testName?: string) => {
   const editor = vscode.window.activeTextEditor;
