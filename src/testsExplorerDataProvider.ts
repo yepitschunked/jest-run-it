@@ -131,6 +131,7 @@ export class TestsExplorerDataProvider
           return new Testable(
             child.name,
             child.file,
+            // @ts-expect-error typedefs are broken
             child.children,
             child.type === 'it'
               ? vscode.TreeItemCollapsibleState.None
@@ -159,6 +160,7 @@ export class TestsExplorerDataProvider
           return new Testable(
             child.name ?? child.file,
             child.file,
+            // @ts-expect-error typedefs are broken
             child.children ?? [],
             child.type === 'it'
               ? vscode.TreeItemCollapsibleState.None

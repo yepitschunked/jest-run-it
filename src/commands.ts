@@ -3,11 +3,11 @@ import * as vscode from 'vscode';
 import {
   DEFAULT_JEST_PATH,
   DEFAULT_JEST_DEBUG_PATH_WINDOWS,
-  TERMINAL_NAME,
 } from './constants';
 import { getConfig, ConfigOption } from './config';
-import { quoteTestName, getTerminal, quoteArgument } from './extension';
-import { JestFileResults, JestTotalResults, Runner } from 'jest-editor-support';
+import { quoteTestName } from './extension';
+import { JestTotalResults, Runner } from 'jest-editor-support';
+// @ts-expect-error typedefs are broken
 import { createProjectWorkspace } from 'jest-editor-support/build/project_workspace';
 import { TestsExplorerDataProvider } from './testsExplorerDataProvider';
 
@@ -29,6 +29,7 @@ export const runTest = (
   testName?: string,
   updateSnapshots = false
 ) => {
+  vscode.commands.executeCommand('jestRunIt.clearDecorations');
   const jestPath = getConfig(ConfigOption.JestPath) || DEFAULT_JEST_PATH;
   const jestConfigPath = getConfig(ConfigOption.JestConfigPath);
   const runOptions = getConfig(ConfigOption.JestCLIOptions) as string[];
@@ -60,6 +61,7 @@ export const runTest = (
   runner.on('executableStdErr', (data) => outputChannel.append(String(data)));
   runner.on('processExit', () => {
     TestsExplorerDataProvider.receiveTestData(testResults.testResults)
+    vscode.commands.executeCommand('jestRunIt.decorateTestResults', testResults)
   });
 
   runner.start(false, false);

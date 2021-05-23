@@ -156,6 +156,10 @@
           "light": "resources/icons/debug/light.svg",
           "dark": "resources/icons/debug/dark.svg"
         }
+      },
+      {
+        "command": "jestRunIt.clearDecorations",
+        "title": "Clear Jest decorations"
       }
     ],
     "viewsContainers": {

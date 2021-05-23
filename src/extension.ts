@@ -9,34 +9,36 @@ import { getConfig, ConfigOption } from './config';
 import { JestDoItCodeLensProvider } from './jestDoItCodeLensProvider';
 import { runTest, debugTest } from './commands';
 import { ArgumentQuotesMode } from './types';
+import GutterDecorations from './gutterDecorations';
+import { JestFileResults, JestTotalResults } from 'jest-editor-support';
 
 export const quoteArgument = (argumentToQuote: string, quotesToUse?: ArgumentQuotesMode): string => {
-    // Decide which quotes to use
-    if (quotesToUse === undefined) {
-        quotesToUse = (getConfig(ConfigOption.ArgumentQuotesToUse) as ArgumentQuotesMode) || 'auto';
-    }
-    if (quotesToUse === 'auto') {
-        // Note: maybe we should not quote argument if it does not contain spaces?
-        quotesToUse = process.platform === 'win32' ? 'double' : 'single';
-    }
+  // Decide which quotes to use
+  if (quotesToUse === undefined) {
+    quotesToUse = (getConfig(ConfigOption.ArgumentQuotesToUse) as ArgumentQuotesMode) || 'auto';
+  }
+  if (quotesToUse === 'auto') {
+    // Note: maybe we should not quote argument if it does not contain spaces?
+    quotesToUse = process.platform === 'win32' ? 'double' : 'single';
+  }
 
-    switch (quotesToUse) {
-        case 'double':
-            return `"${argumentToQuote.replace(/"/g, '\\"')}"`;
-        case 'single':
-            return `'${argumentToQuote.replace(/'/g, '\\\'')}'`;
-        default:
-            return argumentToQuote;
-    }
+  switch (quotesToUse) {
+    case 'double':
+      return `"${argumentToQuote.replace(/"/g, '\\"')}"`;
+    case 'single':
+      return `'${argumentToQuote.replace(/'/g, '\\\'')}'`;
+    default:
+      return argumentToQuote;
+  }
 };
 
 export const quoteTestName = (testName: string, quotesToUse?: ArgumentQuotesMode) => {
-    // We pass test name exactly as it typed in the source code, but jest expects a regex pattern to match.
-    // We must escape characters having a special meaning in regex, otherwise jest will not match the test.
-    // For example, jest -t 'My test (snapshot)' will simply not match corresponding test (because of parens).
-    // The correct command would be jest -t 'My test \(snapshot\)'
-    const escapedTestName = testName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return quoteArgument(escapedTestName, quotesToUse);
+  // We pass test name exactly as it typed in the source code, but jest expects a regex pattern to match.
+  // We must escape characters having a special meaning in regex, otherwise jest will not match the test.
+  // For example, jest -t 'My test (snapshot)' will simply not match corresponding test (because of parens).
+  // The correct command would be jest -t 'My test \(snapshot\)'
+  const escapedTestName = testName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return quoteArgument(escapedTestName, quotesToUse);
 };
 
 export const getTerminal = (terminalName: string) => {
@@ -63,6 +65,7 @@ const debugTestFromEditor = (uri: vscode.Uri) => {
 
 export const activate = (context: vscode.ExtensionContext) => {
   const testsExplorerDataProvider = new TestsExplorerDataProvider();
+  const gutterDecorationsProvider = new GutterDecorations(context);
   vscode.window.registerTreeDataProvider(
     'jestRunItTestsExplorer',
     testsExplorerDataProvider
@@ -110,6 +113,18 @@ export const activate = (context: vscode.ExtensionContext) => {
   );
   context.subscriptions.push(debugTestFromEditorCommand);
 
+  const decorationsCommand = vscode.commands.registerCommand(
+    'jestRunIt.decorateTestResults',
+    (result: JestTotalResults) => gutterDecorationsProvider.decorate(result)
+  );
+  context.subscriptions.push(decorationsCommand);
+
+  const clearDecorationsCommand = vscode.commands.registerCommand(
+    'jestRunIt.clearDecorations',
+    () => gutterDecorationsProvider.reset()
+  );
+  context.subscriptions.push(clearDecorationsCommand);
+
   let patterns = [];
   const testMatchPatternsConfig = getConfig(
     ConfigOption.TestMatchPatterns
@@ -135,4 +150,4 @@ export const activate = (context: vscode.ExtensionContext) => {
 };
 
 // this method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() { }
