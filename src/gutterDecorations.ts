@@ -21,9 +21,9 @@ export default class GutterDecorations {
     })
   }
 
-  decorate(totalResults: JestTotalResults) {
+  decorate(totalResults?: JestTotalResults) {
     const filePath = vscode.window.activeTextEditor?.document.uri.fsPath;
-    const result = totalResults.testResults.find(res => res.name === filePath);
+    const result = totalResults?.testResults.find(res => res.name === filePath);
     if (!result || !filePath) {
       return;
     }

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as micromatch from 'micromatch';
-import { JestFileResults, NamedBlock, parse, ParsedNode, TestResult } from 'jest-editor-support';
+import { JestFileResults, JestTotalResults, NamedBlock, parse, ParsedNode, TestResult } from 'jest-editor-support';
 
 import { getConfig, ConfigOption } from './config';
 import { DEFAULT_TEST_FILE_PATTERNS } from './constants';
@@ -14,8 +14,6 @@ export class TestsExplorerDataProvider
     Testable | undefined
   > = new vscode.EventEmitter<Testable | undefined>();
 
-  static currentTestResults?: JestFileResults[];
-
   private _onDidChangeTreeData: vscode.EventEmitter<
     Testable | undefined
   > = TestsExplorerDataProvider.treeDataEventEmitter;
@@ -23,9 +21,11 @@ export class TestsExplorerDataProvider
   readonly onDidChangeTreeData: vscode.Event<Testable | undefined> = this
     ._onDidChangeTreeData.event;
 
-  static receiveTestData(data: any) {
-    TestsExplorerDataProvider.currentTestResults = data;
-    TestsExplorerDataProvider.treeDataEventEmitter.fire();
+  currentTestResults: JestFileResults[] | undefined;
+
+  receiveTestData(data: JestFileResults[]) {
+    this.currentTestResults = data;
+    this.refresh();
   }
 
   constructor() {
@@ -54,7 +54,7 @@ export class TestsExplorerDataProvider
   }
 
   refresh(): void {
-    this._onDidChangeTreeData.fire();
+    this._onDidChangeTreeData.fire(undefined);
   }
 
   onActiveEditorChanged(): void {
@@ -82,7 +82,7 @@ export class TestsExplorerDataProvider
         }
       }
     } else {
-      TestsExplorerDataProvider.currentTestResults = undefined;
+      this.currentTestResults = undefined;
       vscode.commands.executeCommand(
         'setContext',
         'jestRunItActive',
@@ -92,8 +92,8 @@ export class TestsExplorerDataProvider
   }
 
   getTreeItem(element: Testable): vscode.TreeItem {
-    if (TestsExplorerDataProvider.currentTestResults) {
-      const resultsForFile = TestsExplorerDataProvider.currentTestResults.find(res => res.name === element.file);
+    if (this.currentTestResults) {
+      const resultsForFile = this.currentTestResults.find(res => res.name === element.file);
       if (element.collapsibleState === vscode.TreeItemCollapsibleState.None) {
         // Leaf node, must match one of our assertions
         const assertionResults = resultsForFile?.assertionResults.find(res => res.title === element.label);
@@ -137,15 +137,9 @@ export class TestsExplorerDataProvider
               ? vscode.TreeItemCollapsibleState.None
               : vscode.TreeItemCollapsibleState.Expanded,
             {
-              command: 'editor.action.goToLocations',
-              title: 'open test',
-              arguments: [
-                vscode.window.activeTextEditor?.document.uri,
-                vscode.window.activeTextEditor?.selection.active,
-                [new vscode.Location(vscode.Uri.file(child.file), new vscode.Position(child.start.line, child.start.column))],
-                'goto',
-                'never',
-              ]
+              command: 'jestRunIt.focusTest',
+              title: 'focus test',
+              arguments: [child]
             },
           );
         });
@@ -166,15 +160,9 @@ export class TestsExplorerDataProvider
               ? vscode.TreeItemCollapsibleState.None
               : vscode.TreeItemCollapsibleState.Expanded,
             {
-              command: 'editor.action.goToLocations',
-              title: 'open test',
-              arguments: [
-                vscode.window.activeTextEditor?.document.uri,
-                vscode.window.activeTextEditor?.selection.active,
-                [new vscode.Location(vscode.Uri.file(child.file), new vscode.Position(child.start.line, child.start.column))],
-                'goto',
-                'never',
-              ]
+              command: 'jestRunIt.focusTest',
+              title: 'focus test',
+              arguments: [child]
             },
           );
         });

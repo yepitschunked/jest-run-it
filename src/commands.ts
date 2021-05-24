@@ -23,6 +23,15 @@ const convertEnvVariablesToObj = (env: string) => {
   return obj;
 };
 
+export interface TestResultsAndOutput {
+  result: JestTotalResults;
+  output: string;
+  params: {
+    testName?: string;
+    filePath: string;
+  }
+}
+
 const outputChannel = vscode.window.createOutputChannel('jest');
 export const runTest = (
   filePath: string,
@@ -38,6 +47,7 @@ export const runTest = (
   ) as string;
 
   console.log('testName', testName, filePath);
+  vscode.commands.executeCommand('jestRunIt.receiveTestResults', null)
 
   const runner = new Runner(createProjectWorkspace({
     jestCommandLine: `${environmentVariables} ${jestPath} ${runOptions}`,
@@ -51,17 +61,30 @@ export const runTest = (
   });
 
   let testResults: JestTotalResults;
+  let testOutput: string = '';
 
   runner.on('executableJSON', (data) => {
     testResults = data;
     outputChannel.append(JSON.stringify(data));
   });
 
-  runner.on('executableOutput', (data) => outputChannel.append(String(data)));
-  runner.on('executableStdErr', (data) => outputChannel.append(String(data)));
+  runner.on('executableOutput', (data) => {
+    outputChannel.append(String(data))
+    testOutput += data;
+  });
+  runner.on('executableStdErr', (data) => {
+    outputChannel.append(String(data));
+    testOutput += data;
+  });
   runner.on('processExit', () => {
-    TestsExplorerDataProvider.receiveTestData(testResults.testResults)
-    vscode.commands.executeCommand('jestRunIt.decorateTestResults', testResults)
+    vscode.commands.executeCommand('jestRunIt.receiveTestResults', {
+      result: testResults,
+      output: testOutput,
+      params: {
+        testName,
+        filePath
+      }
+    })
   });
 
   runner.start(false, false);

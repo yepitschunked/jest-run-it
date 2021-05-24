@@ -7,10 +7,11 @@ import {
 import { DEFAULT_TEST_FILE_PATTERNS } from './constants';
 import { getConfig, ConfigOption } from './config';
 import { JestDoItCodeLensProvider } from './jestDoItCodeLensProvider';
-import { runTest, debugTest } from './commands';
+import { runTest, debugTest, TestResultsAndOutput } from './commands';
 import { ArgumentQuotesMode } from './types';
 import GutterDecorations from './gutterDecorations';
-import { JestFileResults, JestTotalResults } from 'jest-editor-support';
+import TestResultsViewProvider from './testResultsViewProvider';
+import { NamedBlock } from 'jest-editor-support';
 
 export const quoteArgument = (argumentToQuote: string, quotesToUse?: ArgumentQuotesMode): string => {
   // Decide which quotes to use
@@ -66,6 +67,9 @@ const debugTestFromEditor = (uri: vscode.Uri) => {
 export const activate = (context: vscode.ExtensionContext) => {
   const testsExplorerDataProvider = new TestsExplorerDataProvider();
   const gutterDecorationsProvider = new GutterDecorations(context);
+  const testResultsViewProvider = new TestResultsViewProvider(context);
+  const handle = vscode.window.registerWebviewViewProvider('jestRunItTestResultsView', testResultsViewProvider, { webviewOptions: { retainContextWhenHidden: true } });
+  context.subscriptions.push(handle);
   vscode.window.registerTreeDataProvider(
     'jestRunItTestsExplorer',
     testsExplorerDataProvider
@@ -113,11 +117,30 @@ export const activate = (context: vscode.ExtensionContext) => {
   );
   context.subscriptions.push(debugTestFromEditorCommand);
 
-  const decorationsCommand = vscode.commands.registerCommand(
-    'jestRunIt.decorateTestResults',
-    (result: JestTotalResults) => gutterDecorationsProvider.decorate(result)
+  const receiveResults = vscode.commands.registerCommand(
+    'jestRunIt.receiveTestResults',
+    (resultAndOutput: TestResultsAndOutput) => {
+      testsExplorerDataProvider.receiveTestData(resultAndOutput?.result?.testResults);
+      gutterDecorationsProvider.decorate(resultAndOutput?.result);
+      testResultsViewProvider.receiveTestResults(resultAndOutput);
+    }
   );
-  context.subscriptions.push(decorationsCommand);
+  context.subscriptions.push(receiveResults);
+
+  const focusTest = vscode.commands.registerCommand(
+    'jestRunIt.focusTest',
+    (test: NamedBlock) => {
+      vscode.commands.executeCommand('editor.action.goToLocations',
+        vscode.window.activeTextEditor?.document.uri,
+        vscode.window.activeTextEditor?.selection.active,
+        [new vscode.Location(vscode.Uri.file(test.file), new vscode.Position(test.start.line, test.start.column))],
+        'goto',
+        'never',
+      );
+      testResultsViewProvider.focusTest(test);
+    }
+  );
+  context.subscriptions.push(focusTest);
 
   const clearDecorationsCommand = vscode.commands.registerCommand(
     'jestRunIt.clearDecorations',

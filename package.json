@@ -25,10 +25,15 @@
   },
   "icon": "resources/logo.png",
   "engines": {
-    "vscode": "^1.40.2"
+    "vscode": "^1.50.0"
   },
   "activationEvents": [
-    "*"
+    "*",
+    "onView:jestRunItTestResultsView"
+  ],
+  "extensionKind": [
+    "ui",
+    "workspace"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -177,6 +182,11 @@
           "id": "jestRunItTestsExplorer",
           "name": "Explorer",
           "when": "jestRunItActive"
+        },
+        {
+          "type": "webview",
+          "id": "jestRunItTestResultsView",
+          "name": "Test Results"
         }
       ]
     },
@@ -208,9 +218,10 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run compile && npm run buildWebview",
+    "buildWebview": "esbuild src/webview/main.tsx --bundle --minify --outfile=resources/webview/main.js",
+    "compile": "tsc -b .",
+    "watch": "tsc -b . --watch",
     "pretest": "npm run compile",
     "test": "node ./out/test/runTest.js"
   },
@@ -219,7 +230,10 @@
     "@types/micromatch": "^4.0.0",
     "@types/mocha": "^5.2.7",
     "@types/node": "^12.11.7",
-    "@types/vscode": "^1.40.2",
+    "@types/react": "^17.0.6",
+    "@types/react-dom": "^17.0.5",
+    "@types/vscode": "^1.50.0",
+    "esbuild": "^0.12.1",
     "glob": "^7.1.5",
     "mocha": "^6.2.2",
     "tslint": "^5.20.0",
@@ -228,6 +242,9 @@
   },
   "dependencies": {
     "jest-editor-support": "^28.1.0",
-    "micromatch": "^4.0.2"
+    "micromatch": "^4.0.2",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "vscode-uri": "^3.0.2"
   }
 }

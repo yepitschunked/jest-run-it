@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es6",
+    "outDir": "../out",
+    "skipDefaultLibCheck": true,
+    "skipLibCheck": true,
+    "lib": [
+      "es6"
+    ],
+    "sourceMap": true,
+    "strict": true,
+    "composite": true
+  },
+  "exclude": [
+    "node_modules",
+    "./webview"
+  ],
+}
