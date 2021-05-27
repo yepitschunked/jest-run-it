@@ -11,6 +11,16 @@
 			"presentation": {
 				"reveal": "never"
 			},
+			"group": "build",
+			"label": "npm: watch",
+			"detail": "tsc -b . --watch"
+		},
+		{
+			"type": "npm",
+			"script": "vscode:prepublish",
+			"problemMatcher": [],
+			"label": "npm: vscode:prepublish",
+			"detail": "npm run compile && npm run buildWebview",
 			"group": {
 				"kind": "build",
 				"isDefault": true

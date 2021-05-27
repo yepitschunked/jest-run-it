@@ -96,7 +96,8 @@ export class TestsExplorerDataProvider
       const resultsForFile = this.currentTestResults.find(res => res.name === element.file);
       if (element.collapsibleState === vscode.TreeItemCollapsibleState.None) {
         // Leaf node, must match one of our assertions
-        const assertionResults = resultsForFile?.assertionResults.find(res => res.title === element.label);
+        // @ts-expect-error handle pending tests wtf
+        const assertionResults = resultsForFile?.assertionResults.find(res => res.title === element.label && res.status !== 'pending');
         let icon: string = '';
         switch (assertionResults?.status) {
           case 'passed':
@@ -110,7 +111,7 @@ export class TestsExplorerDataProvider
         }
         return {
           ...element,
-          label: `${icon}${element.label}`,
+          label: `${icon}${element.label} wtf`,
         };
       }
     }
@@ -131,6 +132,7 @@ export class TestsExplorerDataProvider
           return new Testable(
             child.name,
             child.file,
+            [...element.ancestors, element],
             // @ts-expect-error typedefs are broken
             child.children,
             child.type === 'it'
@@ -154,6 +156,7 @@ export class TestsExplorerDataProvider
           return new Testable(
             child.name ?? child.file,
             child.file,
+            [],
             // @ts-expect-error typedefs are broken
             child.children ?? [],
             child.type === 'it'
@@ -177,6 +180,7 @@ export class Testable extends vscode.TreeItem {
   constructor(
     public readonly label: string,
     public readonly file: string,
+    public readonly ancestors: Array<Testable>,
     public readonly children: Array<NamedBlock> | undefined,
     public readonly collapsibleState: vscode.TreeItemCollapsibleState,
     public readonly command?: vscode.Command

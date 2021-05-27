@@ -46,18 +46,17 @@ export const runTest = (
     ConfigOption.EnvironmentVariables
   ) as string;
 
-  console.log('testName', testName, filePath);
   vscode.commands.executeCommand('jestRunIt.receiveTestResults', null)
 
   const runner = new Runner(createProjectWorkspace({
-    jestCommandLine: `${environmentVariables} ${jestPath} ${runOptions}`,
+    jestCommandLine: `${environmentVariables} ${jestPath}`,
     pathToConfig: jestConfigPath as string,
     rootPath: vscode.workspace.rootPath,
     localJestMajorVersion: 27,
   }), {
     testNamePattern: testName ? quoteTestName(testName) : undefined,
-    testFileNamePattern: quoteTestName(filePath),
-    args: { args: [...runOptions, updateSnapshots ? '-u' : '', '--ci=false'] },
+    //testFileNamePattern: quoteTestName(filePath),
+    args: { args: [...runOptions, updateSnapshots ? '-u' : '', '--ci=false', '--runTestsByPath', filePath] },
   });
 
   let testResults: JestTotalResults;

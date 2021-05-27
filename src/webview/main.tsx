@@ -42,7 +42,7 @@ const Main = () => {
       .find(r => r.name === focusedTest.file)?.assertionResults
       // slice 1 to exclude the root ancestor
       // @ts-expect-error ancestorTitles exists. stfu
-      .filter(r => [r.title, ...r.ancestorTitles.slice(1)].includes(focusedTest.name));
+      .filter(r => r.status !== 'pending' && [r.title, ...r.ancestorTitles].includes(focusedTest.name));
 
   // @ts-expect-error snapshot isn't in the types of course
   const canUpdateSnapshot = !!testResults?.result.snapshot?.failure;
