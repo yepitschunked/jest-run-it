@@ -22,13 +22,18 @@ export class TestsExplorerDataProvider
     ._onDidChangeTreeData.event;
 
   currentTestResults: JestFileResults[] | undefined;
+  testingElement?: Testable;
 
   receiveTestData(data: JestFileResults[]) {
     this.currentTestResults = data;
+    this.testingElement = undefined;
     this.refresh();
   }
 
-  constructor() {
+  context: vscode.ExtensionContext
+
+  constructor(context: vscode.ExtensionContext) {
+    this.context = context;
     vscode.window.onDidChangeActiveTextEditor(() =>
       this.onActiveEditorChanged()
     );
@@ -91,31 +96,44 @@ export class TestsExplorerDataProvider
     }
   }
 
+  testStarted(element: Testable) {
+    this.testingElement = element;
+    this.refresh();
+  }
+
   getTreeItem(element: Testable): vscode.TreeItem {
+    const fullTitle = [...element.ancestors.map(a => a.label), element.label].join(' ');
     if (this.currentTestResults) {
       const resultsForFile = this.currentTestResults.find(res => res.name === element.file);
       if (element.collapsibleState === vscode.TreeItemCollapsibleState.None) {
         // Leaf node, must match one of our assertions
-        // @ts-expect-error handle pending tests wtf
-        const assertionResults = resultsForFile?.assertionResults.find(res => res.title === element.label && res.status !== 'pending');
+        const assertionResults = resultsForFile?.assertionResults.find(res => {
+          // @ts-expect-error handle pending tests wtf
+          return (fullTitle === res.fullName) && (res.status !== 'pending')
+        });
         let icon: string = '';
         switch (assertionResults?.status) {
           case 'passed':
-            icon = '✅ ';
+            icon = '✅';
             break;
           case 'failed':
-            icon = '❌ ';
+            icon = '❌';
             break;
           default:
-            icon = '⚠️ ';
+            icon = '⚠️';
         }
         return {
           ...element,
-          label: `${icon}${element.label} wtf`,
+          label: `${icon} ${element.label}`,
         };
       }
     }
-    return element;
+    const testingElementTitle = this.testingElement ? [...(this.testingElement.ancestors.map(a => a.label)), this.testingElement.label].join(' ') : undefined;
+    return {
+      ...element,
+      iconPath: testingElementTitle && fullTitle.includes(testingElementTitle) ?
+        this.context.asAbsolutePath('resources/icons/Circles-menu-3.gif') : undefined
+    };
   }
 
   getChildren(element?: Testable): Thenable<Testable[]> | null {
@@ -183,10 +201,12 @@ export class Testable extends vscode.TreeItem {
     public readonly ancestors: Array<Testable>,
     public readonly children: Array<NamedBlock> | undefined,
     public readonly collapsibleState: vscode.TreeItemCollapsibleState,
-    public readonly command?: vscode.Command
+    public readonly command?: vscode.Command,
+    public readonly iconPath?: string
   ) {
     super(label, collapsibleState);
     this.tooltip = this.label;
+    this.iconPath = iconPath;
   }
 
   contextValue = 'testable';

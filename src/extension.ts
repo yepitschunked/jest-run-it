@@ -47,7 +47,8 @@ export const getTerminal = (terminalName: string) => {
 };
 
 const runTestFromExplorer = (testable: Testable) => {
-  runTest(testable.file, testable.label);
+  const fullName = [...testable.ancestors.map(t => t.label), testable.label].join(' ');
+  runTest(testable.file, fullName);
 };
 
 const debugTestFromExplorer = (testable: Testable) => {
@@ -65,7 +66,7 @@ const debugTestFromEditor = (uri: vscode.Uri) => {
 };
 
 export const activate = (context: vscode.ExtensionContext) => {
-  const testsExplorerDataProvider = new TestsExplorerDataProvider();
+  const testsExplorerDataProvider = new TestsExplorerDataProvider(context);
   const gutterDecorationsProvider = new GutterDecorations(context);
   const testResultsViewProvider = new TestResultsViewProvider(context);
   const handle = vscode.window.registerWebviewViewProvider('jestRunItTestResultsView', testResultsViewProvider, { webviewOptions: { retainContextWhenHidden: true } });
@@ -95,7 +96,10 @@ export const activate = (context: vscode.ExtensionContext) => {
 
   const runTestFromExplorerCommand = vscode.commands.registerCommand(
     'jestRunItTestsExplorer.runTest',
-    runTestFromExplorer
+    (testable: Testable) => {
+      runTestFromExplorer(testable);
+      testsExplorerDataProvider.testStarted(testable);
+    }
   );
   context.subscriptions.push(runTestFromExplorerCommand);
 
