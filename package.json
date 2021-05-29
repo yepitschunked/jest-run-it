@@ -217,7 +217,7 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "npm run compile:extension -- --minify && npm run compile:webview -- --minify",
     "compile": "npm run compile:extension && npm run compile:webview",
     "compile:extension": "esbuild --bundle --outdir=out src/extension.ts --external:vscode --platform=node --sourcemap ",
     "compile:webview": "esbuild --bundle --outdir=resources/webview src/webview/main.tsx --sourcemap",
