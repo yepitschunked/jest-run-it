@@ -102,14 +102,21 @@ export class TestsExplorerDataProvider
   }
 
   getTreeItem(element: Testable): vscode.TreeItem {
-    const fullTitle = [...element.ancestors.map(a => a.label), element.label].join(' ');
+    const augmentedTreeItem = {
+      ...element,
+      command: {
+        command: 'jestRunIt.focusTest',
+        title: 'focus test',
+        arguments: [element]
+      }
+    };
     if (this.currentTestResults) {
       const resultsForFile = this.currentTestResults.find(res => res.name === element.file);
       if (element.collapsibleState === vscode.TreeItemCollapsibleState.None) {
         // Leaf node, must match one of our assertions
         const assertionResults = resultsForFile?.assertionResults.find(res => {
           // @ts-expect-error handle pending tests wtf
-          return (fullTitle === res.fullName) && (res.status !== 'pending')
+          return (element.id === res.fullName) && (res.status !== 'pending')
         });
         let icon: string = '';
         switch (assertionResults?.status) {
@@ -122,18 +129,15 @@ export class TestsExplorerDataProvider
           default:
             icon = '⚠️';
         }
-        return {
-          ...element,
-          label: `${icon} ${element.label}`,
-        };
+        augmentedTreeItem.label = `${icon} ${augmentedTreeItem.label}`;
       }
     }
     const testingElementTitle = this.testingElement ? [...(this.testingElement.ancestors.map(a => a.label)), this.testingElement.label].join(' ') : undefined;
-    return {
-      ...element,
-      iconPath: testingElementTitle && fullTitle.includes(testingElementTitle) ?
-        this.context.asAbsolutePath('resources/icons/Circles-menu-3.gif') : undefined
-    };
+    if (testingElementTitle && element.id!.includes(testingElementTitle)) {
+      augmentedTreeItem.iconPath = this.context.asAbsolutePath('resources/icons/spinner.png');
+    }
+
+    return augmentedTreeItem;
   }
 
   getChildren(element?: Testable): Thenable<Testable[]> | null {
@@ -156,11 +160,7 @@ export class TestsExplorerDataProvider
             child.type === 'it'
               ? vscode.TreeItemCollapsibleState.None
               : vscode.TreeItemCollapsibleState.Expanded,
-            {
-              command: 'jestRunIt.focusTest',
-              title: 'focus test',
-              arguments: [child]
-            },
+            new vscode.Location(vscode.Uri.file(child.file), new vscode.Position(child.start.line, child.start.column))
           );
         });
       }
@@ -180,11 +180,7 @@ export class TestsExplorerDataProvider
             child.type === 'it'
               ? vscode.TreeItemCollapsibleState.None
               : vscode.TreeItemCollapsibleState.Expanded,
-            {
-              command: 'jestRunIt.focusTest',
-              title: 'focus test',
-              arguments: [child]
-            },
+            new vscode.Location(vscode.Uri.file(child.file), new vscode.Position(child.start.line, child.start.column))
           );
         });
       }
@@ -201,12 +197,14 @@ export class Testable extends vscode.TreeItem {
     public readonly ancestors: Array<Testable>,
     public readonly children: Array<NamedBlock> | undefined,
     public readonly collapsibleState: vscode.TreeItemCollapsibleState,
-    public readonly command?: vscode.Command,
+    public readonly location: vscode.Location,
+    public command?: vscode.Command,
     public readonly iconPath?: string
   ) {
     super(label, collapsibleState);
     this.tooltip = this.label;
     this.iconPath = iconPath;
+    this.id = [...ancestors.map(a => a.label), label].join(' ');
   }
 
   contextValue = 'testable';

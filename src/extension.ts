@@ -133,11 +133,11 @@ export const activate = (context: vscode.ExtensionContext) => {
 
   const focusTest = vscode.commands.registerCommand(
     'jestRunIt.focusTest',
-    (test: NamedBlock) => {
+    (test: Testable) => {
       vscode.commands.executeCommand('editor.action.goToLocations',
         vscode.window.activeTextEditor?.document.uri,
         vscode.window.activeTextEditor?.selection.active,
-        [new vscode.Location(vscode.Uri.file(test.file), new vscode.Position(test.start.line, test.start.column))],
+        [test.location],
         'goto',
         'never',
       );

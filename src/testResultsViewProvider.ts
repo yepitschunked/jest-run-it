@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { runTest, TestResultsAndOutput } from './commands';
 import * as path from 'path';
 import { JestTotalResults, NamedBlock } from 'jest-editor-support';
+import { Testable } from './testsExplorerDataProvider';
 
 interface TestResultsUpdateSnapshotViewMessage {
   type: 'updateSnapshots';
@@ -54,8 +55,9 @@ export default class TestResultsViewProvider implements vscode.WebviewViewProvid
     this._view?.webview.postMessage({ type: 'testResults', data: results });
   }
 
-  focusTest(test: NamedBlock) {
-    this._view?.webview.postMessage({ type: 'focusTest', data: test });
+  focusTest(test: Testable) {
+    const { command, ...serializableTest } = test;
+    this._view?.webview.postMessage({ type: 'focusTest', data: serializableTest });
   }
 
   private _getHtmlForWebview(webview: vscode.Webview) {

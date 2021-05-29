@@ -60,7 +60,7 @@ export const runTest = (
   });
 
   let testResults: JestTotalResults;
-  let testOutput: string = '';
+  let testOutput: string[] = []
 
   runner.on('executableJSON', (data) => {
     testResults = data;
@@ -69,16 +69,16 @@ export const runTest = (
 
   runner.on('executableOutput', (data) => {
     outputChannel.append(String(data))
-    testOutput += data;
+    testOutput.push(data);
   });
   runner.on('executableStdErr', (data) => {
     outputChannel.append(String(data));
-    testOutput += data;
+    testOutput.push(data);
   });
   runner.on('processExit', () => {
     vscode.commands.executeCommand('jestRunIt.receiveTestResults', {
       result: testResults,
-      output: testOutput,
+      output: testOutput.join('\n'),
       params: {
         testName,
         filePath
