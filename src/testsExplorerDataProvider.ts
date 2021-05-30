@@ -22,7 +22,7 @@ export class TestsExplorerDataProvider
     ._onDidChangeTreeData.event;
 
   currentTestResults: JestFileResults[] | undefined;
-  testingElement?: Testable;
+  testingElement?: { file: string, fullName: string };
 
   receiveTestData(data: JestFileResults[]) {
     this.currentTestResults = data;
@@ -30,7 +30,8 @@ export class TestsExplorerDataProvider
     this.refresh();
   }
 
-  context: vscode.ExtensionContext
+  context: vscode.ExtensionContext;
+  root?: Testable;
 
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
@@ -96,8 +97,8 @@ export class TestsExplorerDataProvider
     }
   }
 
-  testStarted(element: Testable) {
-    this.testingElement = element;
+  testStarted(file: string, fullName: string) {
+    this.testingElement = { file, fullName };
     this.refresh();
   }
 
@@ -132,12 +133,15 @@ export class TestsExplorerDataProvider
         augmentedTreeItem.label = `${icon} ${augmentedTreeItem.label}`;
       }
     }
-    const testingElementTitle = this.testingElement ? [...(this.testingElement.ancestors.map(a => a.label)), this.testingElement.label].join(' ') : undefined;
-    if (testingElementTitle && element.id!.includes(testingElementTitle)) {
+    if (this.testingElement?.file === element.file && this.testingElement?.fullName && element.id!.includes(this.testingElement?.fullName)) {
       augmentedTreeItem.iconPath = this.context.asAbsolutePath('resources/icons/spinner.png');
     }
 
     return augmentedTreeItem;
+  }
+
+  getParent(element: Testable) {
+    return element.ancestors[element.ancestors.length - 1]
   }
 
   getChildren(element?: Testable): Thenable<Testable[]> | null {
@@ -183,6 +187,7 @@ export class TestsExplorerDataProvider
             new vscode.Location(vscode.Uri.file(child.file), new vscode.Position(child.start.line, child.start.column))
           );
         });
+        this.root = elements[0];
       }
     }
 

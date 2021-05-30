@@ -55,9 +55,14 @@ export default class TestResultsViewProvider implements vscode.WebviewViewProvid
     this._view?.webview.postMessage({ type: 'testResults', data: results });
   }
 
-  focusTest(test: Testable) {
-    const { command, ...serializableTest } = test;
-    this._view?.webview.postMessage({ type: 'focusTest', data: serializableTest });
+  focusTest(test?: Testable) {
+    if (test) {
+      const { command, ...serializableTest } = test;
+      this._view?.webview.postMessage({ type: 'focusTest', data: serializableTest });
+    } else {
+      this._view?.webview.postMessage({ type: 'focusTest', data: null });
+    }
+
   }
 
   private _getHtmlForWebview(webview: vscode.Webview) {

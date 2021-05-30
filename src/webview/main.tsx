@@ -72,7 +72,7 @@ const Main = () => {
         ).join('\n')
       }</pre>}
     {canUpdateSnapshot &&
-      <a onClick={onUpdateSnapshotClick}>Update snapshots</a>}
+      <button onClick={onUpdateSnapshotClick} type="button">Update snapshots</button>}
   </div>;
 }
 

@@ -71,10 +71,9 @@ export const activate = (context: vscode.ExtensionContext) => {
   const testResultsViewProvider = new TestResultsViewProvider(context);
   const handle = vscode.window.registerWebviewViewProvider('jestRunItTestResultsView', testResultsViewProvider, { webviewOptions: { retainContextWhenHidden: true } });
   context.subscriptions.push(handle);
-  vscode.window.registerTreeDataProvider(
-    'jestRunItTestsExplorer',
-    testsExplorerDataProvider
-  );
+  const treeView = vscode.window.createTreeView('jestRunItTestsExplorer', {
+    treeDataProvider: testsExplorerDataProvider
+  });
 
   const runTestCommand = vscode.commands.registerCommand(
     'jestRunItCodeLens.runTest',
@@ -98,7 +97,14 @@ export const activate = (context: vscode.ExtensionContext) => {
     'jestRunItTestsExplorer.runTest',
     (testable: Testable) => {
       runTestFromExplorer(testable);
-      testsExplorerDataProvider.testStarted(testable);
+    }
+  );
+  context.subscriptions.push(runTestFromExplorerCommand);
+
+  const testStartedCommand = vscode.commands.registerCommand(
+    'jestRunIt.testStarted',
+    (file: string, fullName: string) => {
+      testsExplorerDataProvider.testStarted(file, fullName);
     }
   );
   context.subscriptions.push(runTestFromExplorerCommand);
@@ -127,20 +133,26 @@ export const activate = (context: vscode.ExtensionContext) => {
       testsExplorerDataProvider.receiveTestData(resultAndOutput?.result?.testResults);
       gutterDecorationsProvider.decorate(resultAndOutput?.result);
       testResultsViewProvider.receiveTestResults(resultAndOutput);
+      vscode.commands.executeCommand('jestRunIt.focusTest', undefined)
     }
   );
   context.subscriptions.push(receiveResults);
 
   const focusTest = vscode.commands.registerCommand(
     'jestRunIt.focusTest',
-    (test: Testable) => {
-      vscode.commands.executeCommand('editor.action.goToLocations',
-        vscode.window.activeTextEditor?.document.uri,
-        vscode.window.activeTextEditor?.selection.active,
-        [test.location],
-        'goto',
-        'never',
-      );
+    (test?: Testable) => {
+      if (test) {
+        vscode.commands.executeCommand('editor.action.goToLocations',
+          vscode.window.activeTextEditor?.document.uri,
+          vscode.window.activeTextEditor?.selection.active,
+          [test.location],
+          'goto',
+          'never',
+        );
+        treeView.reveal(test);
+      } else if (testsExplorerDataProvider.root) {
+        treeView.reveal(testsExplorerDataProvider.root)
+      }
       testResultsViewProvider.focusTest(test);
     }
   );

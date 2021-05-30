@@ -9,7 +9,6 @@ import { quoteTestName } from './extension';
 import { JestTotalResults, Runner } from 'jest-editor-support';
 // @ts-expect-error typedefs are broken
 import { createProjectWorkspace } from 'jest-editor-support/build/project_workspace';
-import { TestsExplorerDataProvider } from './testsExplorerDataProvider';
 
 const convertEnvVariablesToObj = (env: string) => {
   const obj = (env.split(' ') as string[])
@@ -47,6 +46,7 @@ export const runTest = (
   ) as string;
 
   vscode.commands.executeCommand('jestRunIt.receiveTestResults', null)
+  vscode.commands.executeCommand('jestRunIt.testStarted', filePath, testName);
 
   const runner = new Runner(createProjectWorkspace({
     jestCommandLine: `${environmentVariables} ${jestPath}`,
